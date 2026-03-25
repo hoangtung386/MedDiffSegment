@@ -1,40 +1,17 @@
-import random
 import sys
 
 sys.path.append(".")
 import argparse
-import collections
-import logging
-import math
 import os
-import time
 from collections import OrderedDict
-from datetime import datetime
 
-import dateutil.tz
-import matplotlib.pyplot as plt
 import nibabel as nib
-import numpy
 import numpy as np
 import torch
-import torch as th
-import torch.nn as nn
-import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import torchvision.utils as vutils
 from PIL import Image
 from prettytable import PrettyTable
-from torch import autograd
-from torch.autograd import Function, Variable
-from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DataLoader
-
-from guided_diffusion.utils import staple
-
-# from mmcv.utils import print_log
-# from mmseg.core import eval_metrics, intersect_and_union, pre_eval_to_metrics
-# from mmseg.utils import get_root_logger
 
 
 def eval(pre_eval_results):
