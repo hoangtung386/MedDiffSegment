@@ -36,7 +36,7 @@ from .base_blocks import (
     TimestepEmbedSequential,
     Upsample,
 )
-from .condition_net import GenericUNet, SS_Former
+from .condition_net import GenericUNet, SS_Former, SymmetryEnhancedAttention
 
 
 class UNetMedSegDiffV2(nn.Module):
