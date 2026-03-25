@@ -28,6 +28,32 @@ from ..nn import (
 from ..utils import InitWeights_He, maybe_to_torch, no_op, sigmoid_helper, softmax_helper, to_cuda
 
 
+def conv_bn(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU(inplace=True),
+    )
+
+
+def conv_dw(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+        nn.BatchNorm2d(inp),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU(inplace=True),
+    )
+
+
+def count_flops_attn(model, _x, y):
+    b, c, *spatial = y[0].shape
+    num_spatial = int(np.prod(spatial))
+    matmul_ops = 2 * b * (num_spatial ** 2) * c
+    model.total_ops += th.DoubleTensor([matmul_ops])
+
+
 class AttentionPool2d(nn.Module):
     """
     Adapted from CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py
