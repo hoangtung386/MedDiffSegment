@@ -188,11 +188,11 @@ class TrainLoop:
         took_step = self.mp_trainer.optimize(self.opt)
         if took_step:
             self._update_ema()
-            self.step += 1  # Tăng counter
+            self.step += 1
         self._anneal_lr()
         self.log_step()
 
-        # Thêm save và logging
+        # Save checkpoint and flush logs at intervals
         if self.step % self.save_interval == 0:
             self.save()
         if self.step % self.log_interval == 0:

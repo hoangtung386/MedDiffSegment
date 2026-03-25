@@ -128,7 +128,7 @@ def main():
         from guided_diffusion.models.base_blocks import QKVAttention
         from guided_diffusion.models.condition_net import SS_Former
 
-        # 1. Monkey Patch: Ép timestep_embedding trả về FP16
+        # 1. Monkey Patch: Force timestep_embedding to return FP16
         _orig_timestep_embedding = nn_module.timestep_embedding
 
         def half_timestep_embedding(*args, **kwargs):
@@ -136,7 +136,7 @@ def main():
 
         nn_module.timestep_embedding = half_timestep_embedding
 
-        # 2. Monkey Patch: Flash Attention (Chống OOM)
+        # 2. Monkey Patch: Flash Attention (prevent OOM)
         def efficient_qkv_forward(self, qkv):
             bs, width, length = qkv.shape
             ch = width // (3 * self.n_heads)
@@ -150,7 +150,7 @@ def main():
 
         QKVAttention.forward = efficient_qkv_forward
 
-        # 3. Monkey Patch: SS_Former (Xử lý FFT Float32 -> MLP Half)
+        # 3. Monkey Patch: SS_Former (FFT Float32 -> MLP Half)
         def patched_ss_former_forward(self, x, anchor_cond, semantic_cond):
             b, c, h, w = x.shape
             if anchor_cond.shape[-2:] != x.shape[-2:]:
@@ -175,7 +175,7 @@ def main():
             attn = th.einsum("bhw,bchw->bchw", weight, v.float())
 
             attn = attn.permute(0, 2, 3, 1)
-            mlp_out = self.mlp(attn.half())  # Ép về Half cho MLP
+            mlp_out = self.mlp(attn.half())  # Cast to Half for MLP
             mlp_out = mlp_out.permute(0, 3, 1, 2)
 
             return self.proj_out(mlp_out) + x
@@ -287,7 +287,7 @@ def main():
                 else diffusion.ddim_sample_loop_known
             )
 
-            # --- FIX: Tắt gradient để tiết kiệm VRAM ---
+            # Disable gradient to save VRAM
             with th.no_grad():
                 sample, x_noisy, org, cal, cal_out = sample_fn(
                     model,
@@ -303,7 +303,7 @@ def main():
             th.cuda.synchronize()
             print(f"Time for sample {i+1}: {start.elapsed_time(end):.2f}ms")
 
-            # Chuyển cal_out sang tensor CPU an toàn
+            # Move cal_out to CPU tensor safely
             if isinstance(cal_out, th.Tensor):
                 co = cal_out.detach().cpu()
             else:
@@ -316,7 +316,7 @@ def main():
 
             if args.debug:
                 if args.data_name == "ISIC":
-                    # Logic cho ISIC giữ nguyên (nhưng thêm .detach().cpu() cho an toàn)
+                    # ISIC visualization (detach + CPU for safety)
                     o = org[:, :-1, :, :].detach().cpu()
                     c = cal.repeat(1, 3, 1, 1).detach().cpu()
                     s = sample[:, -1, :, :].detach().cpu()
@@ -330,44 +330,32 @@ def main():
                     tup = (ss, o, c)
 
                 elif args.data_name in ["BRATS", "BRATS3D"]:
-                    # --- FIX ERROR: 'list' object has no attribute 'to' ---
-                    # 1. Xử lý Mask 'm' (Ground Truth)
-                    # if isinstance(m, list):
-                    #     # Nếu list rỗng hoặc chứa Tensor
-                    #     if len(m) > 0 and isinstance(m[0], th.Tensor):
-                    #         m_tensor = th.stack(m)
-                    #     else:
-                    #         m_tensor = th.tensor(m)
-
-                    # --- FIX 9: Handle Mixed-Shape Mask List (BRATS3D specific) ---
-                    # BRATS3D loader trả về list [slice_mask_4D, volume_mask_5D]
-                    # Chúng ta chỉ cần cái 4D để visualize.
-
+                    # Handle mixed-shape mask list (BRATS3D specific)
+                    # BRATS3D loader returns list [slice_mask_4D, volume_mask_5D],
+                    # we only need the 4D tensor for visualization.
                     if isinstance(m, list):
-                        # Tìm tensor nào có 4 chiều (B, C, H, W) -> Chính là slice mask
+                        # Find the 4D tensor (B, C, H, W) = slice mask
                         valid_masks = [x for x in m if isinstance(x, th.Tensor) and x.ndim == 4]
 
                         if len(valid_masks) > 0:
-                            m_tensor = valid_masks[0]  # Lấy cái 4D đầu tiên
+                            m_tensor = valid_masks[0]
                         elif len(m) > 0 and isinstance(m[0], th.Tensor):
-                            # Fallback: Lấy cái đầu tiên nếu không tìm thấy 4D
                             m_tensor = m[0]
                         else:
                             m_tensor = th.tensor(m)
                     elif isinstance(m, th.Tensor):
                         m_tensor = m
                     else:
-                        m_tensor = th.tensor(m)  # Fallback cuối cùng
+                        m_tensor = th.tensor(m)
 
-                    # 2. Đưa tất cả về CPU và detach
+                    # Move all tensors to CPU
                     m_cpu = m_tensor.detach().cpu()
                     s_cpu = sample.detach().cpu()
                     org_cpu = org.detach().cpu()
                     c_cpu = cal.detach().cpu()
                     co_cpu = co
 
-                    # 3. Format kích thước cho mask
-                    # Mask thường là [1, 4, 256, 256], ta lấy channel 0 để hiện
+                    # Format mask dimensions (take channel 0 from [B, C, H, W])
                     if m_cpu.ndim == 4:
                         m_vis = m_cpu[:, 0, :, :].unsqueeze(1)
                     elif m_cpu.ndim == 3:
@@ -375,10 +363,10 @@ def main():
                     else:
                         m_vis = m_cpu
 
-                    # 4. Format kích thước cho Sample
+                    # Format sample dimensions
                     s_vis = s_cpu[:, -1, :, :].unsqueeze(1)
 
-                    # 5. Format ảnh gốc (Org)
+                    # Format original image channels
                     o1 = org_cpu[:, 0, :, :].unsqueeze(1)
                     o2 = org_cpu[:, 1, :, :].unsqueeze(1)
                     o3 = org_cpu[:, 2, :, :].unsqueeze(1)
