@@ -1,0 +1,85 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ========================
+# Environments
+# ========================
+.env
+.venv
+env/
+venv/
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# ========================
+# Testing / Coverage
+# ========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ========================
+# Type checking / Linting
+# ========================
+.mypy_cache/
+.pytype/
+.pyre/
+.dmypy.json
+
+# ========================
+# Jupyter Notebook
+# ========================
+.ipynb_checkpoints/
+
+# ========================
+# ML: Data & Outputs
+# ========================
+/data/
+/datasets/
+/output*/
+/results/
+/logs/
+wandb/
+runs/
+
+# ========================
+# ML: Model Weights
+# ========================
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+
+# ========================
+# ML: Visdom
+# ========================
+visdom_env/
+.visdom/
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db

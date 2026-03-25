@@ -1,0 +1,4 @@
+black
+isort
+flake8
+visdom>=0.2.0

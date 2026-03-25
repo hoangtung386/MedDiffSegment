@@ -1,0 +1,36 @@
+data:
+  name: "BRATS3D"
+  dir: "../dataset/brats2020/training"
+
+model:
+  image_size: 256
+  num_channels: 128
+  num_res_blocks: 2
+  num_heads: 1
+  in_ch: 5
+  version: "medsegdiff-v2"
+
+diffusion:
+  schedule_sampler: "uniform"
+  diffusion_steps: 1000
+  noise_schedule: "linear"
+  learn_sigma: true
+
+training:
+  lr: 1.0e-4
+  batch_size: 1
+  microbatch: 1
+  ema_rate: "0.9999"
+  lr_anneal_steps: 0
+  weight_decay: 0.0
+  log_interval: 100
+  save_interval: 5000
+  resume_checkpoint: null
+  use_fp16: false
+  fp16_scale_growth: 1.0e-3
+  gpu_dev: "0"
+  multi_gpu: null
+  out_dir: "./results/"
+  seg_loss_weight: 1.0
+  cal_loss_weight: 0.5
+  bce_loss_weight: 1.0
